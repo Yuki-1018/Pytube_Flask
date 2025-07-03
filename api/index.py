@@ -12,7 +12,7 @@ def index():
         video_url = request.form.get("url")
 
         try:
-            yt = YouTube(video_url)
+            yt = YouTube(video_url, use_po_token=True)
 
             video_info = {
                 "title": yt.title,
