@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from pytube import YouTube
+from pytubefix import YouTube
 import os
 
 # Flaskアプリケーションの設定
