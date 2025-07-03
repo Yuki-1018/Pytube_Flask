@@ -2,20 +2,53 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>YouTube ダウンローダー</title>
+    <title>YouTube ダウンロードリンク取得</title>
     <style>
-        body { font-family: sans-serif; margin: 40px; background: #f4f4f4; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
-        input[type=text] { width: 80%; padding: 10px; }
-        button { padding: 10px 20px; }
-        .video { margin-top: 20px; }
-        .error { color: red; }
-        ul { list-style: none; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            background: white;
+            margin: auto;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        h2, h3 {
+            margin-top: 1.5em;
+        }
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        .error {
+            color: red;
+            margin-top: 1em;
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>YouTube動画情報とダウンロードリンク取得</h1>
+    <h1>YouTube動画の情報・ダウンロードリンク表示</h1>
     <form method="POST">
         <input type="text" name="url" placeholder="YouTubeのURLを入力" required>
         <button type="submit">取得</button>
@@ -26,25 +59,30 @@
     {% endif %}
 
     {% if video_info %}
-        <div class="video">
-            <h2>{{ video_info.title }}</h2>
-            <img src="{{ video_info.thumbnail_url }}" width="480">
-            <p>アップロード日: {{ video_info.publish_date }}</p>
+        <h2>{{ video_info.title }}</h2>
+        <p>公開日: {{ video_info.publish_date }}</p>
+        <img src="{{ video_info.thumbnail_url }}" alt="サムネイル">
 
-            <h3>📽️ MP4動画リンク（画質別）:</h3>
-            <ul>
-                {% for stream in video_info.video_streams %}
-                    <li>{{ stream.resolution }} - <a href="{{ stream.url }}" target="_blank">ダウンロード</a></li>
-                {% endfor %}
-            </ul>
+        <h3>📽️ 映像リンク（video/mp4, 音声なし）</h3>
+        <ul>
+            {% for stream in video_info.video_streams %}
+                <li>
+                    解像度: {{ stream.resolution }} —
+                    <a href="{{ stream.url }}" target="_blank">ダウンロード</a>
+                </li>
+            {% endfor %}
+        </ul>
 
-            <h3>🎵 音声リンク（MP3相当）:</h3>
-            <ul>
-                {% for stream in video_info.audio_streams %}
-                    <li>{{ stream.abr }} - <a href="{{ stream.url }}" target="_blank">ダウンロード</a>（{{ stream.mime_type }}）</li>
-                {% endfor %}
-            </ul>
-        </div>
+        <h3>🎵 音声リンク（MP3相当）</h3>
+        <ul>
+            {% for stream in video_info.audio_streams %}
+                <li>
+                    ビットレート: {{ stream.abr }} —
+                    <a href="{{ stream.url }}" target="_blank">ダウンロード</a>
+                    （{{ stream.mime_type }}）
+                </li>
+            {% endfor %}
+        </ul>
     {% endif %}
 </div>
 </body>
