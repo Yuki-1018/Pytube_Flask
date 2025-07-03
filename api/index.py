@@ -29,4 +29,4 @@ def index():
     return render_template("index.html", video_info=video_info, error=error)
 
 # Vercelがこのappを認識する
-
+handler = app
