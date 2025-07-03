@@ -30,5 +30,4 @@ def index():
 
     return render_template("index.html", video_info=video_info, error=error)
 
-# Vercel が探すエクスポート名
-handler = app
+# Vercel が探すエクスポート
