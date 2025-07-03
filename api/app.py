@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request
-from pytube import YouTube
+from pytubefix import YouTube
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="../templates")
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -27,5 +28,5 @@ def index():
 
     return render_template("index.html", video_info=video_info, error=error)
 
-if __name__ == "__main__":
-    app.run(debug=True)
+# Vercelがこのappを認識する
+handler = app
