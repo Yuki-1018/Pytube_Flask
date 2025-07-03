@@ -1,9 +1,7 @@
 from flask import Flask, render_template, request
 from pytubefix import YouTube
-import os
 
-# Flaskアプリケーションの設定
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -14,8 +12,7 @@ def index():
         video_url = request.form.get("url")
 
         try:
-            # pytubefix を使ってBot検出回避（use_po_token=True）
-            yt = YouTube(video_url, use_po_token=True)
+            yt = YouTube(video_url)
 
             video_info = {
                 "title": yt.title,
@@ -30,4 +27,5 @@ def index():
 
     return render_template("index.html", video_info=video_info, error=error)
 
-# Vercel が探すエクスポート
+if __name__ == "__main__":
+    app.run(debug=False)
