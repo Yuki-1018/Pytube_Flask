@@ -3,7 +3,7 @@ import subprocess
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
-
+CORS(app)
 def run_yt_dlp(url):
     """
     yt-dlpで音声メタデータ＋直リンク取得
