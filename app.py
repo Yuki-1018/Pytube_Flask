@@ -26,21 +26,14 @@ def extract():
         return jsonify({"error": "URL parameter is required"}), 400
 
     # yt-dlpの設定
-        ydl_opts = {
-        'format': 'bestaudio/best',
+    ydl_opts = {
+        'format': 'bestaudio/best',  # 音質優先
         'quiet': True,
         'no_warnings': True,
-        'extract_flat': False,
-        'noplaylist': False,
-        # 以下の3行を追加（ボット検知回避の魔法の言葉）
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web'],
-                'po_token': ['web+web_embedded_player'],
-            }
-        }
+        'extract_flat': False, # プレイリストの場合、各動画の詳細も取得する
+        'noplaylist': False,   # プレイリストも許可
+        # Vercel等の環境によってはCookieが必要な場合がありますが、最小構成では省略
     }
-
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
