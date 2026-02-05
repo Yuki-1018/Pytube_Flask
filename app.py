@@ -3,16 +3,7 @@ from flask_cors import CORS
 import yt_dlp
 
 app = Flask(__name__)
-CORS(app) # CORS対策
-
-def format_entry(entry):
-    """必要な4項目だけに絞り込む"""
-    return {
-        "title": entry.get("title"),
-        "uploader": entry.get("uploader"),
-        "image": entry.get("thumbnail"),
-        "audio_url": entry.get("url") # 直リンク
-    }
+CORS(app)
 
 @app.route('/api/extract', methods=['GET'])
 def extract():
@@ -20,28 +11,34 @@ def extract():
     if not target_url:
         return jsonify({"error": "URL is required"}), 400
 
+    # 最小限の設定
     ydl_opts = {
         'format': 'bestaudio/best',
         'quiet': True,
         'no_warnings': True,
-        # プレイリストが巨大な場合のタイムアウト対策
-        'playlist_items': '1-20', 
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # プレイリスト・単体両方に対応
             info = ydl.extract_info(target_url, download=False)
             
-            # プレイリストか単体かを判定してリスト化
+            # infoがプレイリストの場合は 'entries' にリストが入る
+            # 単体動画の場合は info 自体をリストに入れる
             entries = info.get('entries', [info])
             
-            # Noneを除去しつつ整形
-            results = [format_entry(e) for e in entries if e]
+            # 4項目に絞って整形
+            results = []
+            for e in entries:
+                if e:
+                    results.append({
+                        "title": e.get("title"),
+                        "uploader": e.get("uploader"),
+                        "image": e.get("thumbnail"),
+                        "audio_url": e.get("url")
+                    })
 
             return jsonify(results)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-# Vercel用
-app.debug = False
