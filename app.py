@@ -3,70 +3,45 @@ from flask_cors import CORS
 import yt_dlp
 
 app = Flask(__name__)
-# CORS対策: 全てのオリジンからのアクセスを許可
-CORS(app)
+CORS(app) # CORS対策
 
-def extract_video_data(entry):
-    """単一動画のデータを整形して返す"""
+def format_entry(entry):
+    """必要な4項目だけに絞り込む"""
     return {
-        "id": entry.get("id"),
         "title": entry.get("title"),
-        "url": entry.get("url"),  # 音声または動画の直接リンク
-        "duration": entry.get("duration"),
         "uploader": entry.get("uploader"),
-        "thumbnail": entry.get("thumbnail"),
-        "webpage_url": entry.get("webpage_url")
+        "image": entry.get("thumbnail"),
+        "audio_url": entry.get("url") # 直リンク
     }
 
 @app.route('/api/extract', methods=['GET'])
 def extract():
     target_url = request.args.get('url')
-    
     if not target_url:
-        return jsonify({"error": "URL parameter is required"}), 400
+        return jsonify({"error": "URL is required"}), 400
 
-    # yt-dlpの設定
     ydl_opts = {
-        'format': 'bestaudio/best',  # 音質優先
+        'format': 'bestaudio/best',
         'quiet': True,
         'no_warnings': True,
-        'extract_flat': False, # プレイリストの場合、各動画の詳細も取得する
-        'noplaylist': False,   # プレイリストも許可
-        # Vercel等の環境によってはCookieが必要な場合がありますが、最小構成では省略
+        # プレイリストが巨大な場合のタイムアウト対策
+        'playlist_items': '1-20', 
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # メタデータの取得（ダウンロードはしない）
-            info_dict = ydl.extract_info(target_url, download=False)
+            info = ydl.extract_info(target_url, download=False)
             
-            results = []
-            is_playlist = False
-            playlist_title = None
+            # プレイリストか単体かを判定してリスト化
+            entries = info.get('entries', [info])
+            
+            # Noneを除去しつつ整形
+            results = [format_entry(e) for e in entries if e]
 
-            # プレイリストか単体かの判定
-            if 'entries' in info_dict:
-                is_playlist = True
-                playlist_title = info_dict.get('title')
-                # プレイリスト内の各動画を処理
-                for entry in info_dict['entries']:
-                    if entry: # entryがNoneでない場合のみ
-                        results.append(extract_video_data(entry))
-            else:
-                # 単体動画
-                results.append(extract_video_data(info_dict))
-
-            return jsonify({
-                "status": "success",
-                "is_playlist": is_playlist,
-                "playlist_title": playlist_title,
-                "count": len(results),
-                "data": results
-            })
+            return jsonify(results)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ローカルテスト用
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+# Vercel用
+app.debug = False
