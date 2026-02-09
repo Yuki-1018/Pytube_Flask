@@ -5,7 +5,7 @@ import yt_dlp
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/api/extract', methods=['GET'])
+@app.route('/api', methods=['GET'])
 def extract():
     target_url = request.args.get('url')
     if not target_url:
