@@ -3,42 +3,83 @@ from flask_cors import CORS
 import yt_dlp
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # クロスドメイン通信を許可
 
-@app.route('/api', methods=['GET'])
-def extract():
-    target_url = request.args.get('url')
-    if not target_url:
+def extract_video_info(entry):
+    """
+    個別の動画情報から音楽アプリで使いやすいようにフィールドを抽出・整形する
+    """
+    return {
+        "id": entry.get("id"),
+        "title": entry.get("title"),
+        "audio_url": entry.get("url"),  # これが最高音質の直リンク
+        "duration": entry.get("duration"),  # 秒数
+        "thumbnail": entry.get("thumbnail"),
+        "uploader": entry.get("uploader"),
+        "channel": entry.get("channel"),
+        "view_count": entry.get("view_count"),
+        "upload_date": entry.get("upload_date"), # YYYYMMDD形式
+        "description": entry.get("description"),
+    }
+
+@app.route('/api/extract', methods=['GET', 'POST'])
+def extract_audio():
+    # GETパラメーターまたはPOSTのJSONからURLを取得
+    if request.method == 'POST':
+        data = request.get_json()
+        url = data.get('url') if data else None
+    else:
+        url = request.args.get('url')
+
+    if not url:
         return jsonify({"error": "URL is required"}), 400
 
-    # 最小限の設定
+    # yt-dlpのオプション設定
     ydl_opts = {
-        'format': 'bestaudio/best',
-        'quiet': True,
-        'no_warnings': True,
+        # モバイル等で再生しやすいm4a形式の最高音質を優先、なければ他の最高音質
+        'format': 'bestaudio[ext=m4a]/bestaudio/best',
+        'noplaylist': False,      # プレイリストのURLが来た場合、プレイリストとして処理する
+        'extract_flat': False,    # 直リンクURLを解決するためFalseにする必要がある
+        'quiet': True,            # コンソールへの不要な出力を抑える
+        'skip_download': True,    # ダウンロードは行わない
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # プレイリスト・単体両方に対応
-            info = ydl.extract_info(target_url, download=False)
+            # URLから情報を抽出
+            info = ydl.extract_info(url, download=False)
             
-            # infoがプレイリストの場合は 'entries' にリストが入る
-            # 単体動画の場合は info 自体をリストに入れる
-            entries = info.get('entries', [info])
+            # プレイリストか単一の動画かでレスポンスを分岐
+            if 'entries' in info:
+                # プレイリストの場合 (自動的に順番通りに取得されます)
+                items = []
+                for entry in info['entries']:
+                    if entry:  # 削除された動画などでNoneになる場合があるためスキップ
+                        items.append(extract_video_info(entry))
+                
+                response = {
+                    "is_playlist": True,
+                    "playlist_info": {
+                        "id": info.get("id"),
+                        "title": info.get("title"),
+                        "uploader": info.get("uploader"),
+                        "track_count": len(items)
+                    },
+                    "items": items
+                }
+            else:
+                # 単一の動画の場合
+                response = {
+                    "is_playlist": False,
+                    "playlist_info": None,
+                    "items": [extract_video_info(info)]
+                }
+                
+            return jsonify(response), 200
             
-            # 4項目に絞って整形
-            results = []
-            for e in entries:
-                if e:
-                    results.append({
-                        "title": e.get("title"),
-                        "uploader": e.get("uploader"),
-                        "image": e.get("thumbnail"),
-                        "audio_url": e.get("url")
-                    })
-
-            return jsonify(results)
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    # 開発用サーバー起動
+    app.run(host='0.0.0.0', port=5000, debug=True)
